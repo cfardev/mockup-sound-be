@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -13,8 +13,12 @@ model User {
   firstName String   @map("first_name")
   lastName  String   @map("last_name")
   photoUrl  String?  @map("photo_url")
+  role      Role     @default(USER)
   password  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("users")
 }
 
 enum Role {

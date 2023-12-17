@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    ports:
+      - 5505:5432
+    volumes:
+      - ~/apps/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=qwerty123
+      - POSTGRES_USER=admin
+      - POSTGRES_DB=mockup-sound
+    container_name: mockup-sound-test-db

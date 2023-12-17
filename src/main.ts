@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { useContainer } from 'class-validator';
 import {
   ExpressAdapter,
@@ -9,6 +9,8 @@ import {
 } from '@nestjs/platform-express';
 
 async function bootstrap() {
+  const logger = new Logger('bootstrap');
+
   const app = await NestFactory.create<NestExpressApplication>(
     AppModule,
     new ExpressAdapter(),
@@ -26,13 +28,13 @@ async function bootstrap() {
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, document);
+    SwaggerModule.setup('docs', app, document);
   }
 
   app.enableCors();
 
   const port = process.env.PORT || 5000;
   await app.listen(port, '0.0.0.0');
-  console.log(`Server on port ${port}`);
+  logger.log(`Application listening on port ${port}`);
 }
 bootstrap();

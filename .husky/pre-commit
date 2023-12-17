@@ -5,15 +5,16 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-echo '🏗️👷 Styling, testing and building your project before committing'
 
 # Check Prettier Standards
+echo 'Styling 1/5'
 yarn format ||
 (
     echo '🚨 Prettier Check Failed. Make the required changes listed above, add changes and try to commit again.';
     false;
 )
 
+echo 'Linting 2/5'
 yarn lint ||
 (
   echo '🚨 EsLint Check Failed. Make the required changes listed above, add changes and try to commit again.'
@@ -24,14 +25,22 @@ git add -A .
 
 
 # Testing the app with Jest
-# yarn test ||
-# (
-#     echo '🚨 Jest Check Failed. Make the required changes listed above, add changes and try to commit again.'
-#     false;
-# )
+ echo 'Testing 3/5'
+ yarn test ||
+ (
+     echo '🚨 Jest Check Failed. Make the required changes listed above, add changes and try to commit again.'
+     false;
+ )
 
-echo 'Code looks good... Trying to build now. 🚧🚧🚧'
 
+echo 'Testing E2E 4/5'
+yarn test:e2e ||
+(
+    echo '🚨 E2E Check Failed. Make the required changes listed above, add changes and try to commit again.'
+    false;
+)
+
+echo 'Building 5/5'
 yarn build ||
 (
     echo '❌👷 Build failed 🔨❌ Next build failed: View the errors above to see why. '
@@ -39,4 +48,4 @@ yarn build ||
 )
 
 # If everything passes... Now we can commit
-echo 'Committing this now. ✅'
+echo 'Committing this now... 🚀'
