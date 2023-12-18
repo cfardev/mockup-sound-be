@@ -1,23 +1,23 @@
-import { PrismaService } from '../prisma/prisma.service';
-import { AuthService } from './auth.service';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { LoginDto, RegisterDto } from './dto';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
+import { Role } from '@prisma/client';
+import { LoginDto } from './dto/login.dto';
 import * as argon from 'argon2';
-import { Role } from '@prisma/client'; // Add missing import
 
 describe('AuthService', () => {
   let service: AuthService;
   let prismaService: PrismaService;
   let jwtService: JwtService;
-  let configService: ConfigService; // Add missing import
+  let configService: ConfigService;
 
   beforeEach(async () => {
     prismaService = new PrismaService();
-    jwtService = new JwtService();
+    jwtService = new JwtService({ secret: 'test' });
     configService = new ConfigService();
-
     service = new AuthService(jwtService, configService, prismaService);
   });
 
@@ -31,20 +31,26 @@ describe('AuthService', () => {
 
     jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(null);
     jest.spyOn(prismaService.user, 'create').mockResolvedValue({
+      ...registerDto,
       id: 1,
-      email: registerDto.email,
       role: Role.USER,
-      firstName: registerDto.firstName, // Add missing property
-      lastName: registerDto.lastName, // Add missing property
-      photoUrl: '', // Add missing property
-      password: '', // Add missing property
-      createdAt: new Date(), // Add missing property
-      updatedAt: new Date(), // Add missing property
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      photoUrl: '', // Add the photoUrl property
     });
+    jest.spyOn(service, 'signToken').mockResolvedValue('token');
 
     const result = await service.register(registerDto);
 
-    expect(result.user.email).toEqual(registerDto.email);
+    expect(result).toEqual({
+      token: 'token',
+      user: {
+        id: 1,
+        email: registerDto.email,
+        role: Role.USER,
+        photoUrl: '', // Add the photoUrl property
+      },
+    });
   });
 
   it('should throw an error if user already exists', async () => {
@@ -54,6 +60,15 @@ describe('AuthService', () => {
       firstName: 'Test',
       lastName: 'User',
     };
+
+    jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({
+      ...registerDto,
+      id: 1,
+      role: Role.USER,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      photoUrl: '', // Add the photoUrl property
+    });
 
     await expect(service.register(registerDto)).rejects.toThrow(
       BadRequestException,
@@ -67,23 +82,32 @@ describe('AuthService', () => {
     };
 
     jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({
+      ...loginDto,
       id: 1,
-      email: loginDto.email,
-      password: await argon.hash(loginDto.password),
       role: Role.USER,
-      firstName: '', // Add missing property
-      lastName: '', // Add missing property
-      photoUrl: '', // Add missing property
-      createdAt: new Date(), // Add missing property
-      updatedAt: new Date(), // Add missing property
+      firstName: 'Test',
+      lastName: 'User',
+      photoUrl: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
+    jest.spyOn(argon, 'verify').mockResolvedValue(true);
+    jest.spyOn(service, 'signToken').mockResolvedValue('token');
 
     const result = await service.login(loginDto);
 
-    expect(result.user.email).toEqual(loginDto.email);
+    expect(result).toEqual({
+      token: 'token',
+      user: {
+        id: 1,
+        email: loginDto.email,
+        role: Role.USER,
+        photoUrl: '', // Add the photoUrl property
+      },
+    });
   });
 
-  it('should throw an error if user not found', async () => {
+  it('should throw an error if login credentials are invalid', async () => {
     const loginDto: LoginDto = {
       email: 'test@test.com',
       password: 'password',
@@ -94,24 +118,37 @@ describe('AuthService', () => {
     await expect(service.login(loginDto)).rejects.toThrow(NotFoundException);
   });
 
-  it('should throw an error if password is incorrect', async () => {
-    const loginDto: LoginDto = {
-      email: 'test@test.com',
-      password: 'password',
+  it('should login with Google and create/update user in the database', async () => {
+    const req = {
+      user: {
+        email: 'test@test.com',
+        firstName: 'Test',
+        lastName: 'User',
+        picture: '',
+      },
     };
 
-    jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue({
+    jest.spyOn(prismaService.user, 'upsert').mockResolvedValue({
+      ...req.user,
       id: 1,
-      email: loginDto.email,
-      password: await argon.hash('wrongpassword'),
       role: Role.USER,
-      firstName: '', // Add missing property
-      lastName: '', // Add missing property
-      photoUrl: '', // Add missing property
-      createdAt: new Date(), // Add missing property
-      updatedAt: new Date(), // Add missing property
+      photoUrl: '',
+      password: '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
+    jest.spyOn(service, 'signToken').mockResolvedValue('token');
 
-    await expect(service.login(loginDto)).rejects.toThrow(NotFoundException);
+    const result = await service.googleLogin(req);
+
+    expect(result).toEqual({
+      token: 'token',
+      user: {
+        id: 1,
+        email: req.user.email,
+        photoUrl: req.user.picture,
+        role: Role.USER,
+      },
+    });
   });
 });

@@ -2,12 +2,14 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { LoginDto, RegisterDto } from './dto';
 import { PrismaService } from '../prisma/prisma.service';
 import * as argon from 'argon2';
+import { v4 as uuid } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +18,50 @@ export class AuthService {
     private config: ConfigService,
     private readonly prisma: PrismaService,
   ) {}
+
+  async googleLogin(req): Promise<GrantedAccessResponse> {
+    if (!req.user) {
+      throw new UnauthorizedException('No user from google');
+    }
+
+    //Create or update user in database
+    //Generate random password
+    const randomPass = uuid();
+    //Hash password
+
+    const hashedPassword = await argon.hash(randomPass);
+
+    const user = await this.prisma.user.upsert({
+      where: {
+        email: req.user.email,
+      },
+      update: {
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        photoUrl: req.user.picture,
+      },
+      create: {
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        photoUrl: req.user.picture,
+        password: hashedPassword,
+      },
+    });
+
+    const token = await this.signToken(user.id, user.email, user.role);
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        photoUrl: user.photoUrl,
+        role: user.role,
+      },
+    };
+  }
 
   async register(registerDto: RegisterDto): Promise<GrantedAccessResponse> {
     const { email, password, firstName, lastName, photoUrl } = registerDto;
@@ -49,6 +95,7 @@ export class AuthService {
       user: {
         id: newUser.id,
         email: newUser.email,
+        photoUrl: newUser.photoUrl,
         role: newUser.role,
       },
     };
@@ -78,6 +125,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        photoUrl: user.photoUrl,
         role: user.role,
       },
     };
@@ -109,6 +157,7 @@ export interface GrantedAccessResponse {
   user: {
     id: number;
     email: string;
+    photoUrl?: string;
     role: string;
   };
 }

@@ -6,6 +6,7 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let prismaService: PrismaService;
 
   beforeAll(async () => {
