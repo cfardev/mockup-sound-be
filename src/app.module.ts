@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
+import { FileUploadModule } from './file-upload/file-upload.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AuthModule } from './auth/auth.module';
     PrismaModule,
     CommonModule,
     AuthModule,
+    FileUploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -21,6 +21,55 @@ model User {
   @@map("users")
 }
 
+model Headphones {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique
+  description    String
+  price          Float
+  photoUrl       String           @map("photo_url")
+  valoration     Int              @default(0)
+  idCategory     Int              @map("id_category")
+  category       Category         @relation(fields: [idCategory], references: [id])
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now()) @updatedAt
+  HeadphonesTags HeadphonesTags[]
+
+  @@map("headphones")
+}
+
+model Category {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
+  headphones  Headphones[]
+
+  @@map("category")
+}
+
+model Tag {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now()) @updatedAt
+  HeadphonesTags HeadphonesTags[]
+
+  @@map("tags")
+}
+
+model HeadphonesTags {
+  id           Int        @id @default(autoincrement())
+  idHeadphones Int        @map("id_headphones")
+  headphones   Headphones @relation(fields: [idHeadphones], references: [id])
+  idTag        Int        @map("id_tag")
+  tag          Tag        @relation(fields: [idTag], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+
+  @@map("headphones_tags")
+}
+
 enum Role {
   ADMIN
   USER
